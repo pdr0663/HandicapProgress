@@ -75,7 +75,4 @@ async function scrapeTableAndDateFromURL(url) {
     }
 }
 
-// Example usage with a URL
-const urlTemplate = "https://www.topyacht.net.au/results/botanybay/2024/club_series/SatBay24_25/11RGrp1.htm"
-const url = urlTemplate
-scrapeTableAndDateFromURL(url);
+
