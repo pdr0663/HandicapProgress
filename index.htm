@@ -1,17 +1,111 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <script src="app.js">
-
-        console.log("Handicap Progress");
-    
-    // Example usage with a URL
-const urlTemplate = "https://www.topyacht.net.au/results/botanybay/2024/club_series/SatBay24_25/11RGrp1.htm"
-const url = urlTemplate;
-scrapeTableAndDateFromURL(url);
-    
-    </script>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Scraper Demo</title>
 </head>
 <body>
+    <h1>Table Scraper Demo</h1>
+    <form id="scraperForm">
+        <label for="url">Enter URL:</label>
+        <input type="url" id="url" placeholder="https://www.topyacht.net.au/results/botanybay/2024/club_series/SatBay24_25/11RGrp1.htm" required>
+        <button type="submit">Scrape</button>
+    </form>
+
+    <h2>Scraped Data</h2>
+    <pre id="output">Enter a URL and click "Scrape" to see the results here.</pre>
+
+    <script>
+        async function scrapeTableAndDateFromURL(url) {
+            try {
+                // Fetch the HTML content of the page
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch the URL: ${response.statusText}`);
+                }
+
+                // Get the HTML as text
+                const htmlText = await response.text();
+
+                // Parse the HTML using a DOM parser
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, "text/html");
+
+                // Find all tables in the parsed HTML
+                const tables = doc.querySelectorAll("table");
+                if (tables.length === 0) {
+                    return { error: "No tables found on the page." };
+                }
+
+                // Scrape the first table
+                const firstTable = tables[0];
+                const rows = firstTable.querySelectorAll("tr");
+
+                // Extract the table headers
+                const headers = [];
+                const headerCells = rows[0].querySelectorAll("th, td");
+                headerCells.forEach(cell => headers.push(cell.textContent.trim()));
+
+                // Add a new header for the date column
+                headers.push("Date");
+
+                // Extract the date from the page
+                const dateRegex = /\(\d{2}\/\d{2}\/\d{4}\)/;
+                const dateMatch = doc.body.textContent.match(dateRegex);
+                const date = dateMatch ? dateMatch[0].replace(/[()]/g, "") : null;
+
+                if (!date) {
+                    return { error: "Date not found in the specified format." };
+                }
+
+                // Extract table rows and append the date column
+                const tableData = [];
+                rows.forEach((row, rowIndex) => {
+                    const cells = row.querySelectorAll("td, th");
+                    const rowData = [];
+
+                    cells.forEach(cell => rowData.push(cell.textContent.trim()));
+
+                    // Append the date only to data rows (not the header row)
+                    if (rowIndex > 0) {
+                        rowData.push(date);
+                    }
+
+                    tableData.push(rowData);
+                });
+
+                // Create a "Pandas-like" representation
+                const pandasLikeDataFrame = {
+                    headers: headers,
+                    rows: tableData.slice(1) // Exclude the header row
+                };
+
+                return pandasLikeDataFrame;
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        document.getElementById("scraperForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const url = document.getElementById("url").value;
+            const outputElement = document.getElementById("output");
+
+            outputElement.textContent = "Scraping...";
+
+            const result = await scrapeTableAndDateFromURL(url);
+
+            if (result.error) {
+                outputElement.textContent = `Error: ${result.error}`;
+            } else {
+                outputElement.textContent = JSON.stringify(result, null, 2);
+            }
+        });
+    </script>
 </body>
 </html>
+
+
+
+
